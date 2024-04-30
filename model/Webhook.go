@@ -121,4 +121,78 @@ type Webhook struct {
 		Description any    `json:"description"`
 		Homepage    string `json:"homepage"`
 	} `json:"repository"`
+	MergeRequest struct {
+		AssigneeID     any    `json:"assignee_id"`
+		AuthorID       int    `json:"author_id"`
+		Description    string `json:"description"`
+		Draft          bool   `json:"draft"`
+		HeadPipelineID any    `json:"head_pipeline_id"`
+		ID             int    `json:"id"`
+		Iid            int    `json:"iid"`
+		LastEditedAt   any    `json:"last_edited_at"`
+		LastEditedByID any    `json:"last_edited_by_id"`
+		MergeCommitSha any    `json:"merge_commit_sha"`
+		MergeError     any    `json:"merge_error"`
+		MergeParams    struct {
+		} `json:"merge_params"`
+		MergeStatus               string `json:"merge_status"`
+		MergeUserID               any    `json:"merge_user_id"`
+		MergeWhenPipelineSucceeds bool   `json:"merge_when_pipeline_succeeds"`
+		MilestoneID               any    `json:"milestone_id"`
+		SourceBranch              string `json:"source_branch"`
+		SourceProjectID           int    `json:"source_project_id"`
+		StateID                   int    `json:"state_id"`
+		TargetBranch              string `json:"target_branch"`
+		TargetProjectID           int    `json:"target_project_id"`
+		Title                     string `json:"title"`
+		UpdatedByID               int    `json:"updated_by_id"`
+		URL                       string `json:"url"`
+	} `json:"merge_request"`
+}
+
+func (receiver Webhook) CreateMergeRequestMessageFromMR() MergeRequest {
+	var state = OPENED
+
+	if receiver.ObjectAttributes.State == "approved" {
+		state = APPROVED
+	} else if len(receiver.ObjectAttributes.Note) > 0 {
+		state = COMMENTED
+	} else if receiver.ObjectAttributes.State == "merged" {
+		state = MERGED
+	} else if receiver.ObjectAttributes.State == "closed" {
+		state = CLOSED
+	}
+
+	return MergeRequest{
+		Id:             receiver.ObjectAttributes.Iid,
+		Title:          receiver.ObjectAttributes.Title,
+		Link:           receiver.ObjectAttributes.URL,
+		Status:         receiver.ObjectAttributes.State,
+		AuthorUserName: receiver.User.Username,
+		HasComments:    len(receiver.ObjectAttributes.Note) > 0,
+		State:          state,
+	}
+}
+func (receiver Webhook) CreateMergeRequestMessageFromComment() MergeRequest {
+	var state = OPENED
+
+	if receiver.ObjectAttributes.DetailedMergeStatus == "approved" {
+		state = APPROVED
+	} else if len(receiver.ObjectAttributes.Note) > 0 {
+		state = COMMENTED
+	} else if receiver.ObjectAttributes.DetailedMergeStatus == "merged" {
+		state = MERGED
+	} else if receiver.ObjectAttributes.DetailedMergeStatus == "closed" {
+		state = CLOSED
+	}
+
+	return MergeRequest{
+		Id:             receiver.MergeRequest.Iid,
+		Title:          receiver.MergeRequest.Title,
+		Link:           receiver.MergeRequest.URL,
+		Status:         receiver.MergeRequest.MergeStatus,
+		AuthorUserName: receiver.User.Username,
+		HasComments:    len(receiver.ObjectAttributes.Note) > 0,
+		State:          state,
+	}
 }
